@@ -25,7 +25,7 @@ let initLoad = true;
 mapboxgl.accessToken = 'pk.eyJ1IjoicmlzaGkxMyIsImEiOiJjamlyZ2V2dGwwdXEyM3BycXp2ZzlxcmozIn0.UqtxCizQ6MsNzIajuGOpAg';
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'https://api.maptiler.com/maps/basic/style.json?key=1HCKO0pQuPEfNXXzGgSM',
+    style: 'mapbox://styles/rishi13/ck6xad3460bn21is2qfpbppmw',
     center: [146.548, -31.322],
     zoom: 5,
     projection: 'globe',
@@ -108,10 +108,79 @@ function addLayers(airports, nearest, route) {
         'data': nearest
     });
 
+    // route.features.forEach(feature => {
+    // const length = turf.length(feature);
+    // feature.properties.length = length;
+    // console.log(length);
+    // });
+
     map.addSource('newLine', {
         'type': 'geojson',
         'data': route
     });
+
+
+// Calculate and add length property to each feature
+const featuresWithLength = route.features.map(feature => {
+  const length = turf.length(feature, {units: 'kilometers'});
+  return {
+    ...feature,
+    properties: {
+      ...feature.properties,
+      length: length
+    }
+  };
+});
+
+// Add a separate data source for the line lengths
+map.addSource('line-lengths', {
+  type: 'geojson',
+  data: {
+    type: 'FeatureCollection',
+    features: featuresWithLength
+  }
+});
+
+// Add your segment labels layer to the map
+map.addLayer({
+  id: 'segment-labels',
+  type: 'symbol',
+  source: 'line-lengths',
+  filter: ['==', '$type', 'LineString'],
+  layout: {
+    'text-field': ['concat', ['to-string', ['get', 'length']], 'km'],
+    'text-font': ['Open Sans Regular'],
+    'text-size': 12,
+    'text-offset': [0, 0.6],
+    'text-anchor': 'top',
+    'symbol-placement': 'line',
+  },
+  paint: {
+    'text-color': '#000000',
+    'text-halo-color': '#FFFFFF',
+    'text-halo-width': 1,
+    'text-halo-blur': 0
+  }
+});
+
+// Update the line lengths data source dynamically
+setInterval(() => {
+  const updatedFeaturesWithLength = featuresWithLength.map(feature => {
+    const newLength = turf.length(feature, {units: 'kilometers'}) + Math.random() * 100;
+    return {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        length: newLength
+      }
+    };
+  });
+  map.getSource('line-lengths').setData({
+    type: 'FeatureCollection',
+    features: updatedFeaturesWithLength
+  });
+}, 1000);
+    
 
     map.addLayer({
         'id': 'routeLayer',
@@ -135,6 +204,82 @@ function addLayers(airports, nearest, route) {
         }
     });
 
+    map.addControl(new mapboxgl.ScaleControl({position: 'bottom-right'}));
+
+    // Calculate the length of each line segment and add it as a label
+//   var length = turf.length(newLine);
+//   var lengthFormatted = length > 1000 ? (length / 1000).toFixed(2) + ' km' : length.toFixed(2) + ' m';
+//   console.log(lengthFormatted);
+
+// var length = turf.length(route, {units: 'kilometers'});
+// console.log(length);
+
+// Calculate the length of each line segment using turf.js
+// for (const feature of route.features) {
+//   const length = turf.length(feature);
+//   feature.properties.turf = { length };
+//   console.log(length);
+// }
+
+
+
+
+
+// map.addLayer({
+//   'id': 'segment-labels',
+//   'type': 'symbol',
+//   'source': 'newLine',
+//   'layout': {
+//     'symbol-placement': 'line',
+//     'text-field': ['concat', ['to-string', ['get', 'length']], 'm'],
+//     'text-size': 12,
+//     'text-offset': [0, 0.5],
+//     'text-allow-overlap': true
+//   },
+//   'paint': {
+//     'text-color': '#000',
+//     'text-halo-color': '#fff',
+//     'text-halo-width': 2
+//   }
+// });
+
+// var from = turf.point([-75.343, 39.984]);
+// var to = turf.point([-75.534, 39.123]);
+// var options = {units: 'miles'};
+
+// var distance = turf.distance(nearest, airports, options);
+
+// console.log(distance);
+
+// map.addLayer({
+//   'id': 'route-labels',
+//   'type': 'symbol',
+//   'source': 'newLine',
+//   'layout': {
+//     'text-field': [
+//       'concat',
+//       'Length: ',
+//       [
+//         'round',
+//         [
+//           '/',
+//           ['get', 'lineMetrics'].length, // calculate the total length of the line by summing the lengths of all line segments
+//           1000
+//         ]
+//       ],
+//       ' km'
+//     ],
+//     'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+//     'text-size': 12,
+//     'text-offset': [0, 0.6],
+//     'text-anchor': 'top'
+//   },
+//   'paint': {
+//     'text-color': 'black'
+//   }
+// });
+      
+
     map.addLayer({
         'id': 'globe-points',
         'type': 'circle',
@@ -151,7 +296,7 @@ function addLayers(airports, nearest, route) {
             ],
             'circle-opacity': 1,
             'circle-blur': 0,
-            'circle-color': '#555'
+            'circle-color': '#1638D5'
         }
     });
 
@@ -174,6 +319,21 @@ function addLayers(airports, nearest, route) {
             'circle-color': 'red'
         }
     });
+
+    map.addLayer({
+        'id': 'my-labels',
+        'type': 'symbol',
+        'source': 'newPoint', // replace with the ID of your data source
+        layout: {
+            'text-field': ['get', 'name'], // specify the field in your data source that contains the label text
+            'text-size': 15,
+            'text-offset': [0, 0.5], // adjust the label placement
+            'text-anchor': 'top'
+        },
+        paint: {
+            'text-color': '#333'
+        }
+        });
 }
 </script>
 </body>
