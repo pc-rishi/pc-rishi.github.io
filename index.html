@@ -120,66 +120,7 @@ function addLayers(airports, nearest, route) {
     });
 
 
-// Calculate and add length property to each feature
-const featuresWithLength = route.features.map(feature => {
-  const length = turf.length(feature, {units: 'kilometers'});
-  return {
-    ...feature,
-    properties: {
-      ...feature.properties,
-      length: length
-    }
-  };
-});
 
-// Add a separate data source for the line lengths
-map.addSource('line-lengths', {
-  type: 'geojson',
-  data: {
-    type: 'FeatureCollection',
-    features: featuresWithLength
-  }
-});
-
-// Add your segment labels layer to the map
-map.addLayer({
-  id: 'segment-labels',
-  type: 'symbol',
-  source: 'line-lengths',
-  filter: ['==', '$type', 'LineString'],
-  layout: {
-    'text-field': ['concat', ['to-string', ['get', 'length']], 'km'],
-    'text-font': ['Open Sans Regular'],
-    'text-size': 12,
-    'text-offset': [0, 0.6],
-    'text-anchor': 'top',
-    'symbol-placement': 'line',
-  },
-  paint: {
-    'text-color': '#000000',
-    'text-halo-color': '#FFFFFF',
-    'text-halo-width': 1,
-    'text-halo-blur': 0
-  }
-});
-
-// Update the line lengths data source dynamically
-setInterval(() => {
-  const updatedFeaturesWithLength = featuresWithLength.map(feature => {
-    const newLength = turf.length(feature, {units: 'kilometers'}) + Math.random() * 100;
-    return {
-      ...feature,
-      properties: {
-        ...feature.properties,
-        length: newLength
-      }
-    };
-  });
-  map.getSource('line-lengths').setData({
-    type: 'FeatureCollection',
-    features: updatedFeaturesWithLength
-  });
-}, 1000);
     
 
     map.addLayer({
